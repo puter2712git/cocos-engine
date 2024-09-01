@@ -23,26 +23,35 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-const preprocess = require('./preprocess');
-const fetch = require('./fetch');
-const Cache = require('./cache');
-const helper = require('./helper');
-const releaseManager = require('./releaseManager');
-const dependUtil = require('./depend-util');
-const load = require('./load');
-const Pipeline = require('./pipeline');
-const Task = require('./task');
-const RequestItem = require('./request-item');
-const downloader = require('./downloader');
-const parser = require('./parser');
-const packManager = require('./pack-manager');
-const Bundle = require('./bundle');
-const builtins = require('./builtins');
-const factory = require('./factory');
-const { parse, combine } = require('./urlTransformer');
-const { parseParameters, asyncify } = require('./utilities');
-const { assets, files, parsed, pipeline, transformPipeline, fetchPipeline, RequestType, bundles, BuiltinBundleName } = require('./shared');
-
+const preprocess = require("./preprocess");
+const fetch = require("./fetch");
+const Cache = require("./cache");
+const helper = require("./helper");
+const releaseManager = require("./releaseManager");
+const dependUtil = require("./depend-util");
+const load = require("./load");
+const Pipeline = require("./pipeline");
+const Task = require("./task");
+const RequestItem = require("./request-item");
+const downloader = require("./downloader");
+const parser = require("./parser");
+const packManager = require("./pack-manager");
+const Bundle = require("./bundle");
+const builtins = require("./builtins");
+const factory = require("./factory");
+const { parse, combine } = require("./urlTransformer");
+const { parseParameters, asyncify } = require("./utilities");
+const {
+    assets,
+    files,
+    parsed,
+    pipeline,
+    transformPipeline,
+    fetchPipeline,
+    RequestType,
+    bundles,
+    BuiltinBundleName,
+} = require("./shared");
 
 /**
  * @module cc
@@ -51,14 +60,13 @@ const { assets, files, parsed, pipeline, transformPipeline, fetchPipeline, Reque
  * !#en
  * This module controls asset's behaviors and information, include loading, releasing etc. it is a singleton
  * All member can be accessed with `cc.assetManager`.
- * 
+ *
  * !#zh
  * 此模块管理资源的行为和信息，包括加载，释放等，这是一个单例，所有成员能够通过 `cc.assetManager` 调用
- * 
+ *
  * @class AssetManager
  */
-function AssetManager () {
-
+function AssetManager() {
     this._preprocessPipe = preprocess;
 
     this._fetchPipe = fetch;
@@ -66,49 +74,48 @@ function AssetManager () {
     this._loadPipe = load;
 
     /**
-     * !#en 
+     * !#en
      * Normal loading pipeline
-     * 
+     *
      * !#zh
      * 正常加载管线
-     * 
+     *
      * @property pipeline
      * @type {Pipeline}
      */
     this.pipeline = pipeline.append(preprocess).append(load);
-    
+
     /**
-     * !#en 
+     * !#en
      * Fetching pipeline
-     * 
+     *
      * !#zh
      * 下载管线
-     * 
+     *
      * @property fetchPipeline
      * @type {Pipeline}
      */
     this.fetchPipeline = fetchPipeline.append(preprocess).append(fetch);
 
     /**
-     * !#en 
+     * !#en
      * Url transformer
-     * 
+     *
      * !#zh
      * Url 转换器
-     * 
+     *
      * @property transformPipeline
      * @type {Pipeline}
      */
     this.transformPipeline = transformPipeline.append(parse).append(combine);
 
-
     /**
-     * !#en 
+     * !#en
      * The collection of bundle which is already loaded, you can remove cache with {{#crossLink "AssetManager/removeBundle:method"}}{{/crossLink}}
-     * 
+     *
      * !#zh
      * 已加载 bundle 的集合， 你能通过 {{#crossLink "AssetManager/removeBundle:method"}}{{/crossLink}} 来移除缓存
-     * 
+     *
      * @property bundles
      * @type {Cache}
      * @typescript
@@ -117,34 +124,34 @@ function AssetManager () {
     this.bundles = bundles;
 
     /**
-     * !#en 
+     * !#en
      * The collection of asset which is already loaded, you can remove cache with {{#crossLink "AssetManager/releaseAsset:method"}}{{/crossLink}}
-     * 
+     *
      * !#zh
      * 已加载资源的集合， 你能通过 {{#crossLink "AssetManager/releaseAsset:method"}}{{/crossLink}} 来移除缓存
-     * 
+     *
      * @property assets
      * @type {Cache}
      * @typescript
      * assets: AssetManager.Cache<cc.Asset>
      */
     this.assets = assets;
-    
+
     this._files = files;
-    
+
     this._parsed = parsed;
 
-    this.generalImportBase = '';
+    this.generalImportBase = "";
 
-    this.generalNativeBase = '';
+    this.generalNativeBase = "";
 
     /**
-     * !#en 
+     * !#en
      * Manage relationship between asset and its dependencies
-     * 
+     *
      * !#zh
      * 管理资源依赖关系
-     * 
+     *
      * @property dependUtil
      * @type {DependUtil}
      */
@@ -153,84 +160,84 @@ function AssetManager () {
     this._releaseManager = releaseManager;
 
     /**
-     * !#en 
+     * !#en
      * Whether or not cache the loaded asset
-     * 
+     *
      * !#zh
      * 是否缓存已加载的资源
-     * 
+     *
      * @property cacheAsset
      * @type {boolean}
      */
     this.cacheAsset = true;
 
     /**
-     * !#en 
+     * !#en
      * Whether or not load asset forcely, if it is true, asset will be loaded regardless of error
-     * 
+     *
      * !#zh
      * 是否强制加载资源, 如果为 true ，加载资源将会忽略报错
-     * 
+     *
      * @property force
      * @type {boolean}
      */
     this.force = false;
 
     /**
-     * !#en 
+     * !#en
      * Some useful function
-     * 
+     *
      * !#zh
      * 一些有用的方法
-     * 
+     *
      * @property utils
      * @type {Helper}
      */
     this.utils = helper;
 
     /**
-     * !#en 
+     * !#en
      * Manage all downloading task
-     * 
+     *
      * !#zh
      * 管理所有下载任务
-     * 
+     *
      * @property downloader
      * @type {Downloader}
      */
-    this.downloader = downloader; 
+    this.downloader = downloader;
 
     /**
-     * !#en 
+     * !#en
      * Manage all parsing task
-     * 
+     *
      * !#zh
      * 管理所有解析任务
-     * 
+     *
      * @property parser
      * @type {Parser}
      */
     this.parser = parser;
 
     /**
-     * !#en 
+     * !#en
      * Manage internal asset
-     * 
+     *
      * !#zh
      * 管理内置资源
-     * 
+     *
      * @property builtins
      * @type {Builtins}
      */
     this.builtins = builtins;
 
     /**
-     * !#en 
+     * !#en
      * Manage all packed asset
-     * 
+     *
      * !#zh
      * 管理所有合并后的资源
-     * 
+     *
      * @property packManager
      * @type {PackManager}
      */
@@ -239,12 +246,12 @@ function AssetManager () {
     this.factory = factory;
 
     /**
-     * !#en 
+     * !#en
      * Cache manager is a module which controls all caches downloaded from server in non-web platform.
-     * 
+     *
      * !#zh
      * 缓存管理器是一个模块，在非 WEB 平台上，用于管理所有从服务器上下载下来的缓存
-     * 
+     *
      * @property cacheManager
      * @type {cc.AssetManager.CacheManager}
      * @typescript
@@ -253,51 +260,50 @@ function AssetManager () {
     this.cacheManager = null;
 
     /**
-     * !#en 
+     * !#en
      * The preset of options
-     * 
+     *
      * !#zh
      * 可选参数的预设集
-     * 
+     *
      * @property presets
      * @type {Object}
      * @typescript
      * presets: Record<string, Record<string, any>>
      */
     this.presets = {
-        'default': {
+        default: {
             priority: 0,
         },
 
-        'preload': {
-            maxConcurrency: 2, 
+        preload: {
+            maxConcurrency: 2,
             maxRequestsPerFrame: 2,
             priority: -1,
         },
 
-        'scene': {
-            maxConcurrency: 8, 
+        scene: {
+            maxConcurrency: 8,
             maxRequestsPerFrame: 8,
             priority: 1,
         },
 
-        'bundle': {
-            maxConcurrency: 8, 
+        bundle: {
+            maxConcurrency: 8,
             maxRequestsPerFrame: 8,
             priority: 2,
         },
 
-        'remote': {
-            maxRetryCount: 4
+        remote: {
+            maxRetryCount: 4,
         },
 
-        'script': {
+        script: {
             maxConcurrency: 1024,
             maxRequestsPerFrame: 1024,
-            priority: 2
-        }
-    }
-
+            priority: 2,
+        },
+    };
 }
 
 AssetManager.Pipeline = Pipeline;
@@ -308,68 +314,67 @@ AssetManager.Bundle = Bundle;
 AssetManager.BuiltinBundleName = BuiltinBundleName;
 
 AssetManager.prototype = {
-
     constructor: AssetManager,
 
     /**
-     * !#en 
+     * !#en
      * The builtin 'main' bundle
-     * 
+     *
      * !#zh
      * 内置 main 包
-     * 
+     *
      * @property main
      * @readonly
      * @type {Bundle}
      */
-    get main () {
+    get main() {
         return bundles.get(BuiltinBundleName.MAIN);
     },
 
     /**
-     * !#en 
+     * !#en
      * The builtin 'resources' bundle
-     * 
+     *
      * !#zh
      * 内置 resources 包
-     * 
+     *
      * @property resources
      * @readonly
      * @type {Bundle}
      */
-    get resources () {
+    get resources() {
         return bundles.get(BuiltinBundleName.RESOURCES);
     },
 
     /**
-     * !#en 
+     * !#en
      * The builtin 'internal' bundle
-     * 
+     *
      * !#zh
      * 内置 internal 包
-     * 
+     *
      * @property internal
      * @readonly
      * @type {Bundle}
      */
-    get internal () {
+    get internal() {
         return bundles.get(BuiltinBundleName.INTERNAL);
     },
 
     /**
      * !#en
      * Initialize assetManager with options
-     * 
+     *
      * !#zh
      * 初始化资源管理器
-     * 
+     *
      * @method init
-     * @param {Object} options 
-     * 
+     * @param {Object} options
+     *
      * @typescript
      * init(options: Record<string, any>): void
      */
-    init (options) {
+    init(options) {
         options = options || Object.create(null);
         this._files.clear();
         this._parsed.clear();
@@ -385,43 +390,43 @@ AssetManager.prototype = {
     },
 
     /**
-     * !#en 
+     * !#en
      * Get the bundle which has been loaded
-     * 
+     *
      * !#zh
      * 获取已加载的分包
-     * 
+     *
      * @method getBundle
-     * @param {String} name - The name of bundle 
+     * @param {String} name - The name of bundle
      * @return {Bundle} - The loaded bundle
-     * 
+     *
      * @example
      * // ${project}/assets/test1
      * cc.assetManager.getBundle('test1');
-     * 
+     *
      * cc.assetManager.getBundle('resources');
-     * 
+     *
      * @typescript
      * getBundle (name: string): cc.AssetManager.Bundle
      */
-    getBundle (name) {
+    getBundle(name) {
         return bundles.get(name);
     },
 
     /**
-     * !#en 
+     * !#en
      * Remove this bundle. NOTE: The asset whthin this bundle will not be released automatically, you can call {{#crossLink "Bundle/releaseAll:method"}}{{/crossLink}} manually before remove it if you need
-     * 
-     * !#zh 
+     *
+     * !#zh
      * 移除此包, 注意：这个包内的资源不会自动释放, 如果需要的话你可以在摧毁之前手动调用 {{#crossLink "Bundle/releaseAll:method"}}{{/crossLink}} 进行释放
      *
      * @method removeBundle
-     * @param {Bundle} bundle - The bundle to be removed 
-     * 
+     * @param {Bundle} bundle - The bundle to be removed
+     *
      * @typescript
      * removeBundle(bundle: cc.AssetManager.Bundle): void
      */
-    removeBundle (bundle) {
+    removeBundle(bundle) {
         bundle._destroy();
         bundles.remove(bundle.name);
     },
@@ -429,25 +434,25 @@ AssetManager.prototype = {
     /**
      * !#en
      * General interface used to load assets with a progression callback and a complete callback. You can achieve almost all effect you want with combination of `requests` and `options`.
-     * It is highly recommended that you use more simple API, such as `load`, `loadDir` etc. Every custom parameter in `options` will be distribute to each of `requests`. 
+     * It is highly recommended that you use more simple API, such as `load`, `loadDir` etc. Every custom parameter in `options` will be distribute to each of `requests`.
      * if request already has same one, the parameter in request will be given priority. Besides, if request has dependencies, `options` will distribute to dependencies too.
-     * Every custom parameter in `requests` will be tranfered to handler of `downloader` and `parser` as `options`. 
+     * Every custom parameter in `requests` will be tranfered to handler of `downloader` and `parser` as `options`.
      * You can register you own handler downloader or parser to collect these custom parameters for some effect.
-     * 
+     *
      * Reserved Keyword: `uuid`, `url`, `path`, `dir`, `scene`, `type`, `priority`, `preset`, `audioLoadMode`, `ext`, `bundle`, `onFileProgress`, `maxConcurrency`, `maxRequestsPerFrame`
      * `maxRetryCount`, `version`, `responseType`, `withCredentials`, `mimeType`, `timeout`, `header`, `reload`, `cacheAsset`, `cacheEnabled`,
      * Please DO NOT use these words as custom options!
-     * 
+     *
      * !#zh
      * 通用加载资源接口，可传入进度回调以及完成回调，通过组合 `request` 和 `options` 参数，几乎可以实现和扩展所有想要的加载效果。非常建议你使用更简单的API，例如 `load`、`loadDir` 等。
      * `options` 中的自定义参数将会分发到 `requests` 的每一项中，如果request中已存在同名的参数则以 `requests` 中为准，同时如果有其他
      * 依赖资源，则 `options` 中的参数会继续向依赖项中分发。request中的自定义参数都会以 `options` 形式传入加载流程中的 `downloader`, `parser` 的方法中, 你可以
      * 扩展 `downloader`, `parser` 收集参数完成想实现的效果。
-     * 
+     *
      * 保留关键字: `uuid`, `url`, `path`, `dir`, `scene`, `type`, `priority`, `preset`, `audioLoadMode`, `ext`, `bundle`, `onFileProgress`, `maxConcurrency`, `maxRequestsPerFrame`
      * `maxRetryCount`, `version`, `responseType`, `withCredentials`, `mimeType`, `timeout`, `header`, `reload`, `cacheAsset`, `cacheEnabled`,
      * 请不要使用这些字段为自定义参数!
-     * 
+     *
      * @method loadAny
      * @param {string|string[]|Object|Object[]} requests - The request you want to load
      * @param {Object} [options] - Optional parameters
@@ -458,7 +463,7 @@ AssetManager.prototype = {
      * @param {Function} [onComplete] - Callback invoked when finish loading
      * @param {Error} onComplete.err - The error occured in loading process.
      * @param {Object} onComplete.data - The loaded content
-     * 
+     *
      * @example
      * cc.assetManager.loadAny({url: 'http://example.com/a.png'}, (err, img) => cc.log(img));
      * cc.assetManager.loadAny(['60sVXiTH1D/6Aft4MRt9VC'], (err, assets) => cc.log(assets));
@@ -474,7 +479,7 @@ AssetManager.prototype = {
      *      onComplete(null, {skin, model});
      * });
      * cc.assetManager.loadAny({ url: 'http://example.com/my.asset', skin: 'xxx', model: 'xxx', userName: 'xxx', password: 'xxx' });
-     * 
+     *
      * @typescript
      * loadAny(requests: string | string[] | Record<string, any> | Record<string, any>[], options: Record<string, any>, onProgress: (finished: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete: (err: Error, data: any) => void): void
      * loadAny(requests: string | string[] | Record<string, any> | Record<string, any>[], onProgress: (finished: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete: (err: Error, data: any) => void): void
@@ -483,25 +488,35 @@ AssetManager.prototype = {
      * loadAny(requests: string | string[] | Record<string, any> | Record<string, any>[], options: Record<string, any>): void
      * loadAny(requests: string | string[] | Record<string, any> | Record<string, any>[]): void
      */
-    loadAny (requests, options, onProgress, onComplete) {
-        var { options, onProgress, onComplete } = parseParameters(options, onProgress, onComplete);
-        
-        options.preset = options.preset || 'default';
+    loadAny(requests, options, onProgress, onComplete) {
+        var { options, onProgress, onComplete } = parseParameters(
+            options,
+            onProgress,
+            onComplete
+        );
+
+        options.preset = options.preset || "default";
         requests = Array.isArray(requests) ? requests.concat() : requests;
-        let task = new Task({input: requests, onProgress, onComplete: asyncify(onComplete), options});
+        let task = new Task({
+            input: requests,
+            onProgress,
+            onComplete: asyncify(onComplete),
+            options,
+        });
+
         pipeline.async(task);
     },
 
     /**
      * !#en
      * General interface used to preload assets with a progression callback and a complete callback.It is highly recommended that you use more simple API, such as `preloadRes`, `preloadResDir` etc.
-     * Everything about preload is just likes `cc.assetManager.loadAny`, the difference is `cc.assetManager.preloadAny` will only download asset but not parse asset. You need to invoke `cc.assetManager.loadAny(preloadTask)` 
+     * Everything about preload is just likes `cc.assetManager.loadAny`, the difference is `cc.assetManager.preloadAny` will only download asset but not parse asset. You need to invoke `cc.assetManager.loadAny(preloadTask)`
      * to finish loading asset
-     * 
+     *
      * !#zh
      * 通用预加载资源接口，可传入进度回调以及完成回调，非常建议你使用更简单的 API ，例如 `preloadRes`, `preloadResDir` 等。`preloadAny` 和 `loadAny` 几乎一样，区别在于 `preloadAny` 只会下载资源，不会去解析资源，你需要调用 `cc.assetManager.loadAny(preloadTask)`
      * 来完成资源加载。
-     * 
+     *
      * @method preloadAny
      * @param {string|string[]|Object|Object[]} requests - The request you want to preload
      * @param {Object} [options] - Optional parameters
@@ -512,10 +527,10 @@ AssetManager.prototype = {
      * @param {Function} [onComplete] - Callback invoked when finish preloading
      * @param {Error} onComplete.err - The error occured in preloading process.
      * @param {RequestItem[]} onComplete.items - The preloaded content
-     * 
+     *
      * @example
      * cc.assetManager.preloadAny('0cbZa5Y71CTZAccaIFluuZ', (err) => cc.assetManager.loadAny('0cbZa5Y71CTZAccaIFluuZ'));
-     * 
+     *
      * @typescript
      * preloadAny(requests: string | string[] | Record<string, any> | Record<string, any>[], options: Record<string, any>, onProgress: (finished: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete: (err: Error, items: cc.AssetManager.RequestItem[]) => void): void
      * preloadAny(requests: string | string[] | Record<string, any> | Record<string, any>[], onProgress: (finished: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete: (err: Error, items: cc.AssetManager.RequestItem[]) => void): void
@@ -524,40 +539,53 @@ AssetManager.prototype = {
      * preloadAny(requests: string | string[] | Record<string, any> | Record<string, any>[], options: Record<string, any>): void
      * preloadAny(requests: string | string[] | Record<string, any> | Record<string, any>[]): void
      */
-    preloadAny (requests, options, onProgress, onComplete) {
-        var { options, onProgress, onComplete } = parseParameters(options, onProgress, onComplete);
-    
-        options.preset = options.preset || 'preload';
+    preloadAny(requests, options, onProgress, onComplete) {
+        var { options, onProgress, onComplete } = parseParameters(
+            options,
+            onProgress,
+            onComplete
+        );
+
+        options.preset = options.preset || "preload";
         requests = Array.isArray(requests) ? requests.concat() : requests;
-        var task = new Task({input: requests, onProgress, onComplete: asyncify(onComplete), options});
+        var task = new Task({
+            input: requests,
+            onProgress,
+            onComplete: asyncify(onComplete),
+            options,
+        });
         fetchPipeline.async(task);
     },
 
     /**
      * !#en
      * Load native file of asset, if you check the option 'Async Load Assets', you may need to load native file with this before you use the asset
-     * 
+     *
      * !#zh
      * 加载资源的原生文件，如果你勾选了'延迟加载资源'选项，你可能需要在使用资源之前调用此方法来加载原生文件
-     * 
+     *
      * @method postLoadNative
      * @param {Asset} asset - The asset
      * @param {Object} [options] - Some optional parameters
      * @param {Function} [onComplete] - Callback invoked when finish loading
      * @param {Error} onComplete.err - The error occured in loading process.
-     * 
+     *
      * @example
      * cc.assetManager.postLoadNative(texture, (err) => console.log(err));
-     * 
+     *
      * @typescript
      * postLoadNative(asset: cc.Asset, options: Record<string, any>, onComplete: (err: Error) => void): void
      * postLoadNative(asset: cc.Asset, onComplete: (err: Error) => void): void
      * postLoadNative(asset: cc.Asset, options: Record<string, any>): void
      * postLoadNative(asset: cc.Asset): void
      */
-    postLoadNative (asset, options, onComplete) {
-        if (!(asset instanceof cc.Asset)) throw new Error('input is not asset');
-        var { options, onComplete } = parseParameters(options, undefined, onComplete);
+    postLoadNative(asset, options, onComplete) {
+        if (!(asset instanceof cc.Asset)) throw new Error("input is not asset");
+        var { options, onComplete } = parseParameters(
+            options,
+            undefined,
+            onComplete
+        );
 
         if (!asset._native || asset._nativeAsset) {
             return asyncify(onComplete)(null);
@@ -573,14 +601,13 @@ AssetManager.prototype = {
                     depend.bundle = bundle.name;
                 }
             }
-            
+
             this.loadAny(depend, options, function (err, native) {
                 if (!err) {
                     if (asset.isValid && !asset._nativeAsset) {
-                        asset._nativeAsset = native
+                        asset._nativeAsset = native;
                     }
-                }
-                else {
+                } else {
                     cc.error(err.message, err.stack);
                 }
                 onComplete && onComplete(err);
@@ -591,10 +618,10 @@ AssetManager.prototype = {
     /**
      * !#en
      * Load remote asset with url, such as audio, image, text and so on.
-     * 
+     *
      * !#zh
      * 使用 url 加载远程资源，例如音频，图片，文本等等。
-     * 
+     *
      * @method loadRemote
      * @param {string} url - The url of asset
      * @param {Object} [options] - Some optional parameters
@@ -603,77 +630,90 @@ AssetManager.prototype = {
      * @param {Function} [onComplete] - Callback invoked when finish loading
      * @param {Error} onComplete.err - The error occured in loading process.
      * @param {Asset} onComplete.asset - The loaded texture
-     * 
+     *
      * @example
      * cc.assetManager.loadRemote('http://www.cloud.com/test1.jpg', (err, texture) => console.log(err));
      * cc.assetManager.loadRemote('http://www.cloud.com/test2.mp3', (err, audioClip) => console.log(err));
      * cc.assetManager.loadRemote('http://www.cloud.com/test3', { ext: '.png' }, (err, texture) => console.log(err));
-     * 
+     *
      * @typescript
      * loadRemote<T extends cc.Asset>(url: string, options: Record<string, any>, onComplete: (err: Error, asset: T) => void): void
      * loadRemote<T extends cc.Asset>(url: string, onComplete: (err: Error, asset: T) => void): void
      * loadRemote<T extends cc.Asset>(url: string, options: Record<string, any>): void
      * loadRemote<T extends cc.Asset>(url: string): void
      */
-    loadRemote (url, options, onComplete) {
-        var { options, onComplete } = parseParameters(options, undefined, onComplete);
+    loadRemote(url, options, onComplete) {
+        var { options, onComplete } = parseParameters(
+            options,
+            undefined,
+            onComplete
+        );
 
         if (this.assets.has(url)) {
             return asyncify(onComplete)(null, this.assets.get(url));
         }
 
         options.__isNative__ = true;
-        options.preset = options.preset || 'remote';
-        this.loadAny({url}, options, null, function (err, data) {
+        options.preset = options.preset || "remote";
+        this.loadAny({ url }, options, null, function (err, data) {
             if (err) {
                 cc.error(err.message, err.stack);
                 onComplete && onComplete(err, null);
-            }
-            else {
-                factory.create(url, data, options.ext || cc.path.extname(url), options, function (err, out) {
-                    onComplete && onComplete(err, out);
-                });
+            } else {
+                factory.create(
+                    url,
+                    data,
+                    options.ext || cc.path.extname(url),
+                    options,
+                    function (err, out) {
+                        onComplete && onComplete(err, out);
+                    }
+                );
             }
         });
     },
 
     /**
      * !#en
-     * Load script 
-     * 
+     * Load script
+     *
      * !#zh
      * 加载脚本
-     * 
+     *
      * @method loadScript
      * @param {string|string[]} url - Url of the script
      * @param {Object} [options] - Some optional paramters
      * @param {boolean} [options.async] - Indicate whether or not loading process should be async
      * @param {Function} [onComplete] - Callback when script loaded or failed
      * @param {Error} onComplete.err - The occurred error, null indicetes success
-     * 
+     *
      * @example
      * loadScript('http://localhost:8080/index.js', null, (err) => console.log(err));
-     * 
+     *
      * @typescript
      * loadScript(url: string|string[], options: Record<string, any>, onComplete: (err: Error) => void): void
      * loadScript(url: string|string[], onComplete: (err: Error) => void): void
      * loadScript(url: string|string[], options: Record<string, any>): void
      * loadScript(url: string|string[]): void
      */
-    loadScript (url, options, onComplete) {
-        var { options, onComplete } = parseParameters(options, undefined, onComplete);
+    loadScript(url, options, onComplete) {
+        var { options, onComplete } = parseParameters(
+            options,
+            undefined,
+            onComplete
+        );
         options.__requestType__ = RequestType.URL;
-        options.preset = options.preset || 'script';
+        options.preset = options.preset || "script";
         this.loadAny(url, options, onComplete);
     },
 
     /**
      * !#en
      * load bundle
-     * 
+     *
      * !#zh
      * 加载资源包
-     * 
+     *
      * @method loadBundle
      * @param {string} nameOrUrl - The name or root path of bundle
      * @param {Object} [options] - Some optional paramter, same like downloader.downloadFile
@@ -681,18 +721,22 @@ AssetManager.prototype = {
      * @param {Function} [onComplete] - Callback when bundle loaded or failed
      * @param {Error} onComplete.err - The occurred error, null indicetes success
      * @param {Bundle} onComplete.bundle - The loaded bundle
-     * 
+     *
      * @example
      * loadBundle('http://localhost:8080/test', null, (err, bundle) => console.log(err));
-     * 
+     *
      * @typescript
      * loadBundle(nameOrUrl: string, options: Record<string, any>, onComplete: (err: Error, bundle: cc.AssetManager.Bundle) => void): void
      * loadBundle(nameOrUrl: string, onComplete: (err: Error, bundle: cc.AssetManager.Bundle) => void): void
      * loadBundle(nameOrUrl: string, options: Record<string, any>): void
      * loadBundle(nameOrUrl: string): void
      */
-    loadBundle (nameOrUrl, options, onComplete) {
-        var { options, onComplete } = parseParameters(options, undefined, onComplete);
+    loadBundle(nameOrUrl, options, onComplete) {
+        var { options, onComplete } = parseParameters(
+            options,
+            undefined,
+            onComplete
+        );
 
         let bundleName = cc.path.basename(nameOrUrl);
 
@@ -700,8 +744,8 @@ AssetManager.prototype = {
             return asyncify(onComplete)(null, this.getBundle(bundleName));
         }
 
-        options.preset = options.preset || 'bundle';
-        options.ext = 'bundle';
+        options.preset = options.preset || "bundle";
+        options.ext = "bundle";
         this.loadRemote(nameOrUrl, options, onComplete);
     },
 
@@ -711,7 +755,7 @@ AssetManager.prototype = {
      * This method will not only remove the cache of the asset in assetManager, but also clean up its content.
      * For example, if you release a texture, the texture asset and its gl texture data will be freed up.
      * Notice, this method may cause the texture to be unusable, if there are still other nodes use the same texture, they may turn to black and report gl errors.
-     * 
+     *
      * !#zh
      * 释放资源以及其依赖资源, 这个方法不仅会从 assetManager 中删除资源的缓存引用，还会清理它的资源内容。
      * 比如说，当你释放一个 texture 资源，这个 texture 和它的 gl 贴图数据都会被释放。
@@ -719,7 +763,7 @@ AssetManager.prototype = {
      *
      * @method releaseAsset
      * @param {Asset} asset - The asset to be released
-     * 
+     *
      * @example
      * // release a texture which is no longer need
      * cc.assetManager.releaseAsset(texture);
@@ -727,42 +771,42 @@ AssetManager.prototype = {
      * @typescript
      * releaseAsset(asset: cc.Asset): void
      */
-    releaseAsset (asset) {
+    releaseAsset(asset) {
         releaseManager.tryRelease(asset, true);
     },
 
     /**
-     * !#en 
+     * !#en
      * Release all unused assets. Refer to {{#crossLink "AssetManager/releaseAsset:method"}}{{/crossLink}} for detailed informations.
-     * 
-     * !#zh 
+     *
+     * !#zh
      * 释放所有没有用到的资源。详细信息请参考 {{#crossLink "AssetManager/releaseAsset:method"}}{{/crossLink}}
      *
      * @method releaseUnusedAssets
      * @private
-     * 
+     *
      * @typescript
      * releaseUnusedAssets(): void
      */
-    releaseUnusedAssets () {
+    releaseUnusedAssets() {
         assets.forEach(function (asset) {
             releaseManager.tryRelease(asset);
         });
     },
 
     /**
-     * !#en 
+     * !#en
      * Release all assets. Refer to {{#crossLink "AssetManager/releaseAsset:method"}}{{/crossLink}} for detailed informations.
-     * 
-     * !#zh 
+     *
+     * !#zh
      * 释放所有资源。详细信息请参考 {{#crossLink "AssetManager/releaseAsset:method"}}{{/crossLink}}
      *
      * @method releaseAll
-     * 
+     *
      * @typescript
      * releaseAll(): void
      */
-    releaseAll () {
+    releaseAll() {
         assets.forEach(function (asset) {
             releaseManager.tryRelease(asset, true);
         });
@@ -771,8 +815,8 @@ AssetManager.prototype = {
         }
     },
 
-    _transform (input, options) {
-        var subTask = Task.create({input, options});
+    _transform(input, options) {
+        var subTask = Task.create({ input, options });
         var urls = [];
         try {
             var result = transformPipeline.sync(subTask);
@@ -782,8 +826,7 @@ AssetManager.prototype = {
                 item.recycle();
                 urls.push(url);
             }
-        }
-        catch (e) {
+        } catch (e) {
             for (var i = 0, l = subTask.output.length; i < l; i++) {
                 subTask.output[i].recycle();
             }
@@ -791,7 +834,7 @@ AssetManager.prototype = {
         }
         subTask.recycle();
         return urls.length > 1 ? urls : urls[0];
-    }
+    },
 };
 
 cc.AssetManager = AssetManager;
@@ -804,33 +847,32 @@ cc.AssetManager = AssetManager;
  */
 cc.assetManager = new AssetManager();
 
-Object.defineProperty(cc, 'resources', {
+Object.defineProperty(cc, "resources", {
     /**
      * !#en
      * cc.resources is a bundle and controls all asset under assets/resources
-     * 
+     *
      * !#zh
      * cc.resources 是一个 bundle，用于管理所有在 assets/resources 下的资源
-     * 
+     *
      * @property resources
      * @readonly
      * @type {AssetManager.Bundle}
      */
-    get () {
+    get() {
         return bundles.get(BuiltinBundleName.RESOURCES);
-    }
+    },
 });
-
 
 module.exports = cc.assetManager;
 
 /**
  * !#en
- * This module controls asset's behaviors and information, include loading, releasing etc. 
+ * This module controls asset's behaviors and information, include loading, releasing etc.
  * All member can be accessed with `cc.assetManager`. All class or enum can be accessed with `cc.AssetManager`
- * 
+ *
  * !#zh
  * 此模块管理资源的行为和信息，包括加载，释放等，所有成员能够通过 `cc.assetManager` 调用. 所有类型或枚举能通过 `cc.AssetManager` 访问
- * 
+ *
  * @module cc.AssetManager
  */

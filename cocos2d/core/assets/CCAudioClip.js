@@ -24,8 +24,53 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-const Asset = require('./CCAsset');
-const EventTarget = require('../event/event-target');
+const Asset = require("./CCAsset");
+const EventTarget = require("../event/event-target");
+
+function audioBufferToWAVBlob(audioBuffer) {
+    const numberOfChannels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const length = audioBuffer.length * numberOfChannels * 2 + 44; // WAV 파일 헤더(44 bytes) 추가
+
+    const buffer = new ArrayBuffer(length);
+    const view = new DataView(buffer);
+
+    // WAV 파일 헤더 작성
+    writeUTFBytes(view, 0, "RIFF");
+    view.setUint32(4, length - 8, true);
+    writeUTFBytes(view, 8, "WAVE");
+    writeUTFBytes(view, 12, "fmt ");
+    view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
+    view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+    view.setUint16(22, numberOfChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numberOfChannels * 2, true); // ByteRate
+    view.setUint16(32, numberOfChannels * 2, true); // BlockAlign
+    view.setUint16(34, 16, true); // BitsPerSample
+    writeUTFBytes(view, 36, "data");
+    view.setUint32(40, length - 44, true);
+
+    // PCM 데이터 작성
+    const channelData = new Float32Array(numberOfChannels);
+    let offset = 44;
+
+    for (let i = 0; i < audioBuffer.length; i++) {
+        for (let channel = 0; channel < numberOfChannels; channel++) {
+            channelData[channel] = audioBuffer.getChannelData(channel)[i];
+            view.setInt16(offset, channelData[channel] * 0x7fff, true); // PCM 16비트 포맷
+            offset += 2;
+        }
+    }
+
+    // WAV 데이터로 Blob 생성
+    return new Blob([view], { type: "audio/wav" });
+}
+
+function writeUTFBytes(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
+}
 
 var LoadMode = cc.Enum({
     WEB_AUDIO: 0,
@@ -40,11 +85,11 @@ var LoadMode = cc.Enum({
  * @uses EventTarget
  */
 var AudioClip = cc.Class({
-    name: 'cc.AudioClip',
+    name: "cc.AudioClip",
     extends: Asset,
     mixins: [EventTarget],
 
-    ctor () {
+    ctor() {
         this._loading = false;
         this.loaded = false;
 
@@ -62,35 +107,44 @@ var AudioClip = cc.Class({
         duration: 0,
         loadMode: {
             default: LoadMode.WEB_AUDIO,
-            type: LoadMode
+            type: LoadMode,
         },
         _nativeAsset: {
-            get () {
+            get() {
                 return this._audio;
             },
-            set (value) {
+            set(value) {
                 // HACK: fix load mp3 as audioClip, _nativeAsset is set as audioClip.
                 // Should load mp3 as audioBuffer indeed.
                 if (value instanceof cc.AudioClip) {
                     this._audio = value._nativeAsset;
-                }
-                else {
+                } else {
                     this._audio = value;
                 }
                 if (this._audio) {
                     this.loaded = true;
-                    this.emit('load');
+                    this.emit("load");
                 }
+
+                const wavBlob = audioBufferToWAVBlob(this._audio);
+                const blobURL = URL.createObjectURL(wavBlob);
+                const audio = new Audio();
+                audio.src = blobURL;
             },
-            override: true
+            override: true,
         },
 
         _nativeDep: {
-            get () {
-                return { uuid: this._uuid, audioLoadMode: this.loadMode, ext: cc.path.extname(this._native), __isNative__: true };
+            get() {
+                return {
+                    uuid: this._uuid,
+                    audioLoadMode: this.loadMode,
+                    ext: cc.path.extname(this._native),
+                    __isNative__: true,
+                };
             },
-            override: true
-        }
+            override: true,
+        },
     },
 
     statics: {
@@ -104,23 +158,21 @@ var AudioClip = cc.Class({
                     }
                     callback(null, data);
                 });
-            }
-            else {
+            } else {
                 callback(null, audioClip);
             }
-        }
+        },
     },
 
-    _ensureLoaded (onComplete) {
+    _ensureLoaded(onComplete) {
         if (!this.isValid) {
             return;
         }
         if (this.loaded) {
             return onComplete && onComplete();
-        }
-        else {
+        } else {
             if (onComplete) {
-                this.once('load', onComplete);
+                this.once("load", onComplete);
             }
             if (!this._loading) {
                 this._loading = true;
@@ -132,10 +184,10 @@ var AudioClip = cc.Class({
         }
     },
 
-    destroy () {
+    destroy() {
         cc.audioEngine.uncache(this);
         this._super();
-    }
+    },
 });
 
 /**

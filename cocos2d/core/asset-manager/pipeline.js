@@ -26,31 +26,31 @@
  * @module cc.AssetManager
  */
 
-const Task = require('./task');
+const Task = require("./task");
 
 var _pipelineId = 0;
 /**
  * !#en
  * Pipeline can execute the task for some effect.
- * 
+ *
  * !#zh
  * 管线能执行任务达到某个效果
- * 
+ *
  * @class Pipeline
  */
-function Pipeline (name, funcs) {
+function Pipeline(name, funcs) {
     if (!Array.isArray(funcs)) {
-        cc.warn('funcs must be an array');
+        cc.warn("funcs must be an array");
         return;
-    } 
-    
+    }
+
     /**
      * !#en
      * The id of pipeline
-     * 
+     *
      * !#zh
      * 管线的 id
-     * 
+     *
      * @property id
      * @type {Number}
      */
@@ -59,10 +59,10 @@ function Pipeline (name, funcs) {
     /**
      * !#en
      * The name of pipeline
-     * 
+     *
      * !#zh
      * 管线的名字
-     * 
+     *
      * @property name
      * @type {String}
      */
@@ -71,37 +71,34 @@ function Pipeline (name, funcs) {
     /**
      * !#en
      * All pipes of pipeline
-     * 
+     *
      * !#zh
      * 所有的管道
-     * 
+     *
      * @property pipes
      * @type {Function[]}
      */
     this.pipes = [];
 
     for (var i = 0, l = funcs.length; i < l; i++) {
-        if (typeof funcs[i] === 'function') {
+        if (typeof funcs[i] === "function") {
             this.pipes.push(funcs[i]);
         }
     }
-
 }
 
 Pipeline.prototype = {
-
-
     /**
      * !#en
      * Create a new pipeline
-     * 
+     *
      * !#zh
      * 创建一个管线
-     * 
+     *
      * @method constructor
      * @param {string} name - The name of pipeline
      * @param {Function[]} funcs - The array of pipe, every pipe must be function which take two parameters, the first is a `Task` flowed in pipeline, the second is complete callback
-     * 
+     *
      * @example
      * var pipeline = new Pipeline('download', [
      * (task, done) => {
@@ -118,7 +115,7 @@ Pipeline.prototype = {
      *      done();
      * }
      * ]);
-     * 
+     *
      * @typescript
      * constructor(name: string, funcs: Array<(task: Task, done?: (err: Error) => void) => void>)
      */
@@ -127,66 +124,65 @@ Pipeline.prototype = {
     /**
      * !#en
      * At specific point insert a new pipe to pipeline
-     * 
+     *
      * !#zh
      * 在某个特定的点为管线插入一个新的 pipe
-     * 
+     *
      * @method insert
      * @param {Function} func - The new pipe
      * @param {Task} func.task - The task handled with pipeline will be transferred to this function
      * @param {Function} [func.callback] - Callback you need to invoke manually when this pipe is finished. if the pipeline is synchronous, callback is unnecessary.
      * @param {number} index - The specific point you want to insert at.
      * @return {Pipeline} pipeline
-     * 
+     *
      * @example
      * var pipeline = new Pipeline('test', []);
      * pipeline.insert((task, done) => {
      *      // do something
      *      done();
      * }, 0);
-     * 
+     *
      * @typescript
      * insert(func: (task: Task, callback?: (err: Error) => void) => void, index: number): Pipeline
      */
-    insert (func, index) {
-        if (typeof func !== 'function' || index > this.pipes.length) {
+    insert(func, index) {
+        if (typeof func !== "function" || index > this.pipes.length) {
             cc.warnID(4921);
             return;
         }
-    
+
         this.pipes.splice(index, 0, func);
         return this;
     },
 
-
     /**
      * !#en
      * Append a new pipe to the pipeline
-     * 
+     *
      * !#zh
      * 添加一个管道到管线中
-     * 
+     *
      * @method append
      * @param {Function} func - The new pipe
      * @param {Task} func.task - The task handled with pipeline will be transferred to this function
      * @param {Function} [func.callback] - Callback you need to invoke manually when this pipe is finished. if the pipeline is synchronous, callback is unnecessary.
      * @return {Pipeline} pipeline
-     * 
+     *
      * @example
      * var pipeline = new Pipeline('test', []);
      * pipeline.append((task, done) => {
      *      // do something
      *      done();
      * });
-     * 
+     *
      * @typescript
      * append(func: (task: Task, callback?: (err: Error) => void) => void): Pipeline
      */
-    append (func) {
-        if (typeof func !== 'function') {
+    append(func) {
+        if (typeof func !== "function") {
             return;
         }
-    
+
         this.pipes.push(func);
         return this;
     },
@@ -194,29 +190,29 @@ Pipeline.prototype = {
     /**
      * !#en
      * Remove pipe which at specific point
-     * 
+     *
      * !#zh
      * 移除特定位置的管道
-     * 
+     *
      * @method remove
      * @param {number} index - The specific point
      * @return {Pipeline} pipeline
-     * 
+     *
      * @example
      * var pipeline = new Pipeline('test', (task, done) => {
      *      // do something
-     *      done();  
+     *      done();
      * });
      * pipeline.remove(0);
-     * 
+     *
      * @typescript
      * remove(index: number): Pipeline
      */
-    remove (index) {
-        if (typeof index !== 'number') {
+    remove(index) {
+        if (typeof index !== "number") {
             return;
         }
-    
+
         this.pipes.splice(index, 1);
         return this;
     },
@@ -224,27 +220,27 @@ Pipeline.prototype = {
     /**
      * !#en
      * Execute task synchronously
-     * 
+     *
      * !#zh
      * 同步执行任务
-     * 
+     *
      * @method sync
      * @param {Task} task - The task will be executed
      * @returns {*} result
-     * 
+     *
      * @example
      * var pipeline = new Pipeline('sync', [(task) => {
      *      let input = task.input;
      *      task.output = doSomething(task.input);
      * }]);
-     * 
+     *
      * var task = new Task({input: 'test'});
      * console.log(pipeline.sync(task));
-     * 
+     *
      * @typescript
-     * sync(task: Task): any 
+     * sync(task: Task): any
      */
-    sync (task) {
+    sync(task) {
         var pipes = this.pipes;
         if (!(task instanceof Task) || pipes.length === 0) return;
         if (task.output != null) {
@@ -252,7 +248,7 @@ Pipeline.prototype = {
             task.output = null;
         }
         task._isFinish = false;
-        for (var i = 0, l = pipes.length; i < l;) {
+        for (var i = 0, l = pipes.length; i < l; ) {
             var pipe = pipes[i];
             var result = pipe(task);
             if (result) {
@@ -272,13 +268,13 @@ Pipeline.prototype = {
     /**
      * !#en
      * Execute task asynchronously
-     * 
+     *
      * !#zh
      * 异步执行任务
-     * 
+     *
      * @method async
      * @param {Task} task - The task will be executed
-     * 
+     *
      * @example
      * var pipeline = new Pipeline('sync', [(task, done) => {
      *      let input = task.input;
@@ -287,11 +283,11 @@ Pipeline.prototype = {
      * }]);
      * var task = new Task({input: 'test', onComplete: (err, result) => console.log(result)});
      * pipeline.async(task);
-     *  
+     *
      * @typescript
      * async(task: Task): void
      */
-    async (task) {
+    async(task) {
         var pipes = this.pipes;
         if (!(task instanceof Task) || pipes.length === 0) return;
         if (task.output != null) {
@@ -302,29 +298,27 @@ Pipeline.prototype = {
         this._flow(0, task);
     },
 
-    _flow (index, task) {
+    _flow(index, task) {
         var self = this;
         var pipe = this.pipes[index];
         pipe(task, function (result) {
             if (result) {
                 task._isFinish = true;
                 task.onComplete && task.onComplete(result);
-            }
-            else {
+            } else {
                 index++;
                 if (index < self.pipes.length) {
                     // move output to input
                     task.input = task.output;
                     task.output = null;
                     self._flow(index, task);
-                }
-                else {
+                } else {
                     task._isFinish = true;
                     task.onComplete && task.onComplete(result, task.output);
                 }
             }
         });
-    }
+    },
 };
 
 module.exports = Pipeline;

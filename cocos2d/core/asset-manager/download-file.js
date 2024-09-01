@@ -22,18 +22,26 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
  ****************************************************************************/
-const { parseParameters } = require('./utilities');
+const { parseParameters } = require("./utilities");
 
-function downloadFile (url, options, onProgress, onComplete) {
-    var { options, onProgress, onComplete } = parseParameters(options, onProgress, onComplete);
+function downloadFile(url, options, onProgress, onComplete) {
+    var { options, onProgress, onComplete } = parseParameters(
+        options,
+        onProgress,
+        onComplete
+    );
 
-    var xhr = new XMLHttpRequest(), errInfo = 'download failed: ' + url + ', status: ';
+    var xhr = new XMLHttpRequest(),
+        errInfo = "download failed: " + url + ", status: ";
 
-    xhr.open('GET', url, true);
+    xhr.open("GET", url, true);
 
-    if (options.responseType !== undefined) xhr.responseType = options.responseType;
-    if (options.withCredentials !== undefined) xhr.withCredentials = options.withCredentials;
-    if (options.mimeType !== undefined && xhr.overrideMimeType ) xhr.overrideMimeType(options.mimeType);
+    if (options.responseType !== undefined)
+        xhr.responseType = options.responseType;
+    if (options.withCredentials !== undefined)
+        xhr.withCredentials = options.withCredentials;
+    if (options.mimeType !== undefined && xhr.overrideMimeType)
+        xhr.overrideMimeType(options.mimeType);
     if (options.timeout !== undefined) xhr.timeout = options.timeout;
 
     if (options.header) {
@@ -43,12 +51,12 @@ function downloadFile (url, options, onProgress, onComplete) {
     }
 
     xhr.onload = function () {
-        if ( xhr.status === 200 || xhr.status === 0 ) {
+        if (xhr.status === 200 || xhr.status === 0) {
             onComplete && onComplete(null, xhr.response);
         } else {
-            onComplete && onComplete(new Error(errInfo + xhr.status + '(no response)'));
+            onComplete &&
+                onComplete(new Error(errInfo + xhr.status + "(no response)"));
         }
-
     };
 
     if (onProgress) {
@@ -59,20 +67,21 @@ function downloadFile (url, options, onProgress, onComplete) {
         };
     }
 
-    xhr.onerror = function(){
-        onComplete && onComplete(new Error(errInfo + xhr.status + '(error)'));
+    xhr.onerror = function () {
+        onComplete && onComplete(new Error(errInfo + xhr.status + "(error)"));
     };
 
-    xhr.ontimeout = function(){
-        onComplete && onComplete(new Error(errInfo + xhr.status + '(time out)'));
+    xhr.ontimeout = function () {
+        onComplete &&
+            onComplete(new Error(errInfo + xhr.status + "(time out)"));
     };
 
-    xhr.onabort = function(){
-        onComplete && onComplete(new Error(errInfo + xhr.status + '(abort)'));
+    xhr.onabort = function () {
+        onComplete && onComplete(new Error(errInfo + xhr.status + "(abort)"));
     };
 
     xhr.send(null);
-    
+
     return xhr;
 }
 
